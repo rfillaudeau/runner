@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class LevelGenerator : MonoBehaviour
 {
+    public static System.Action onLevelGenerated;
+
     [SerializeField] private int _levelSize = 5;
     [SerializeField] private GameObject _levelStart;
     [SerializeField] private GameObject _levelEnd;
@@ -30,5 +32,7 @@ public class LevelGenerator : MonoBehaviour
         }
 
         Instantiate(_levelEnd, mapPosition, Quaternion.identity);
+
+        onLevelGenerated?.Invoke();
     }
 }

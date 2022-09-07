@@ -3,8 +3,9 @@ using UnityEngine;
 
 public class PlayerInput : MonoBehaviour
 {
-    public static event Action<Vector2> onSwipe;
-    public static event Action onTap;
+    public event Action onTap;
+
+    public Vector2 swipeDirection { get; private set; }
 
     [SerializeField] private float _touchThreshold = 1f;
 
@@ -13,50 +14,51 @@ public class PlayerInput : MonoBehaviour
 
     private float _touchTravelDistance = 0f;
 
-    private bool _registerInputs = false;
+    [SerializeField] private float _waitForSavingTouchPosition = 0.05f;
+    private Vector2 _touchPositionToSave;
 
-    private void OnEnable()
-    {
-        GameManager.onStartGame += RegisterInputs;
-    }
-
-    private void OnDisable()
-    {
-        GameManager.onStartGame -= RegisterInputs;
-    }
+    private float _elapsedTimeAfterLastSave = 0f;
 
     private void Update()
     {
-        HandleTouch();
+        HandleMouse();
     }
 
-    private void HandleTouch()
+    private void HandleMouse()
     {
-        if (!_registerInputs)
-        {
-            return;
-        }
-
         if (Input.GetMouseButtonDown(0))
         {
             _touchPreviousPosition = Input.mousePosition;
             _touchCurrentPosition = Input.mousePosition;
             _touchTravelDistance = 0f;
+
+            _touchPositionToSave = _touchPreviousPosition;
+            _elapsedTimeAfterLastSave = 0f;
         }
 
         if (Input.GetMouseButton(0))
         {
             _touchCurrentPosition = Input.mousePosition;
-            _touchTravelDistance += Vector2.Distance(_touchPreviousPosition, _touchCurrentPosition);
+
+            if (_elapsedTimeAfterLastSave >= _waitForSavingTouchPosition)
+            {
+                _touchPreviousPosition = _touchPositionToSave;
+                _touchTravelDistance += Vector2.Distance(_touchPreviousPosition, _touchCurrentPosition);
+
+                _touchPositionToSave = _touchCurrentPosition;
+                _elapsedTimeAfterLastSave = 0f;
+            }
+
+            _elapsedTimeAfterLastSave += Time.deltaTime;
 
             HandleSwipe();
-
-            _touchPreviousPosition = _touchCurrentPosition;
         }
 
         if (Input.GetMouseButtonUp(0))
         {
             HandleTapAction();
+
+            swipeDirection = Vector2.zero;
         }
     }
 
@@ -68,27 +70,26 @@ public class PlayerInput : MonoBehaviour
 
             if (xMovement > 0f)
             {
-                onSwipe?.Invoke(Vector2.right);
+                swipeDirection = Vector2.right;
             }
             else
             {
-                onSwipe?.Invoke(Vector2.left);
+                swipeDirection = Vector2.left;
             }
+        }
+        else
+        {
+            swipeDirection = Vector2.zero;
         }
     }
 
     private void HandleTapAction()
     {
-        if (_touchTravelDistance >= _touchThreshold)
+        if (_touchTravelDistance > _touchThreshold)
         {
             return;
         }
 
         onTap?.Invoke();
-    }
-
-    private void RegisterInputs()
-    {
-        _registerInputs = true;
     }
 }

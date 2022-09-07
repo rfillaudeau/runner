@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
+[RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider), typeof(PlayerInput))]
 public class Player : MonoBehaviour
 {
     public event Action onCollidedWithObstacle;
@@ -19,11 +19,11 @@ public class Player : MonoBehaviour
 
     private Rigidbody _rigidbody;
     private CapsuleCollider _collider;
+    private PlayerInput _input;
 
     private float _distanceToGround;
 
     private Vector3 _moveDirection = Vector3.zero;
-    private Vector3 _sideDirection = Vector3.zero;
 
     private bool _slide = false;
     private bool _isGrounded = false;
@@ -34,6 +34,7 @@ public class Player : MonoBehaviour
     {
         _rigidbody = GetComponent<Rigidbody>();
         _collider = GetComponent<CapsuleCollider>();
+        _input = GetComponent<PlayerInput>();
     }
 
     private void Start()
@@ -43,16 +44,14 @@ public class Player : MonoBehaviour
 
     private void OnEnable()
     {
-        PlayerInput.onSwipe += OnSwipe;
-        PlayerInput.onTap += OnTap;
+        _input.onTap += OnTap;
         GameManager.onStartGame += EnableMovement;
         LevelEnd.onLevelComplete += DisableMovement;
     }
 
     private void OnDisable()
     {
-        PlayerInput.onSwipe -= OnSwipe;
-        PlayerInput.onTap -= OnTap;
+        _input.onTap -= OnTap;
         GameManager.onStartGame -= EnableMovement;
         LevelEnd.onLevelComplete -= DisableMovement;
     }
@@ -105,26 +104,14 @@ public class Player : MonoBehaviour
         if (!_canMove || !_isGrounded)
         {
             _moveDirection = Vector3.zero;
-            _sideDirection = Vector3.zero;
 
             return;
         }
 
         _moveDirection = transform.forward * Time.fixedDeltaTime * _forwardSpeed;
-
-        if (_sideDirection != Vector3.zero)
-        {
-            _moveDirection.x = _sideDirection.x * Time.fixedDeltaTime * _sideSpeed;
-
-            _sideDirection = Vector3.zero;
-        }
+        _moveDirection.x = _input.swipeDirection.x * Time.fixedDeltaTime * _sideSpeed;
 
         _rigidbody.MovePosition(transform.position + _moveDirection);
-    }
-
-    private void OnSwipe(Vector2 direction)
-    {
-        _sideDirection.x = direction.x;
     }
 
     private void OnTap()
